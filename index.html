@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Way Home (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,600;1,400&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff; --panel:#ededed; --ink:#111111; --muted:#6e6e6e; --line:#d2d2d2;
+  --amber:#111111; --amber-glow:rgba(0,0,0,.09); --moss:#111111; --rust:#111111; --water:#111111;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e0e0e; --panel:#1f1f1f; --ink:#f0f0f0; --muted:#8c8c8c; --line:#333333;
+    --amber:#f0f0f0; --amber-glow:rgba(255,255,255,.12); --moss:#f0f0f0; --rust:#f0f0f0; --water:#f0f0f0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e0e0e; --panel:#1f1f1f; --ink:#f0f0f0; --muted:#8c8c8c; --line:#333333;
+  --amber:#f0f0f0; --amber-glow:rgba(255,255,255,.12); --moss:#f0f0f0; --rust:#f0f0f0; --water:#f0f0f0;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Alegreya Sans",system-ui,sans-serif;font-size:17px;line-height:1.45}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 20px 40px}
+header h1{font-family:Alegreya,Georgia,serif;font-weight:600;font-size:2.1rem;margin:0}
+header p{margin:2px 0 0;color:var(--muted);font-family:Alegreya,Georgia,serif;font-style:italic}
+.layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.95fr) minmax(0,1fr);gap:36px;margin-top:28px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:28px}.log{order:3;max-height:none}}
+
+.log{font-family:Alegreya,Georgia,serif;font-size:1.07rem;line-height:1.55;max-height:72vh;overflow:hidden}
+.log p{margin:0 0 .75em}
+.log p.bad{font-style:italic}
+.log p.warm{font-weight:600}
+.cell.dog,.trail span{filter:grayscale(1)}
+
+.stat{display:grid;grid-template-columns:7em auto;align-items:baseline;gap:10px;margin-bottom:5px}
+.stat span:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
+.stat b{color:var(--ink);font-weight:600}
+.stat.low span:first-child,.stat.low b{font-style:italic}
+.bar{position:relative;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar.scent{height:10px;border-radius:5px}
+.bar b{position:absolute;top:0;width:2px;height:100%;background:var(--bg)}
+.stat.scent{margin-bottom:16px}
+.stat.scent span:first-child{font-weight:600}
+.bar i{display:block;height:100%;background:var(--moss);transition:width .3s}
+.bar.low i{background:var(--muted)}
+.facts{margin:14px 0 0;padding:0;list-style:none;color:var(--muted);font-size:.95rem}
+.facts b{color:var(--ink);font-weight:500}
+
+.actions,.choice{display:flex;flex-direction:column;gap:8px;margin-top:22px}
+.choice p{font-family:Alegreya,Georgia,serif;margin:0 0 6px;font-size:1.05rem}
+button.act{position:relative;overflow:hidden;text-align:left;font:inherit;font-weight:500;color:var(--ink);background:transparent;border:1px solid var(--ink);border-radius:2px;padding:9px 14px 10px;cursor:pointer}
+button.act:hover:not(:disabled){background:var(--panel)}
+button.act:disabled{color:var(--muted);border-color:var(--line);cursor:default}
+button.act small{display:none}
+.bw{display:flex;flex-direction:column}
+button.act:disabled{pointer-events:none}
+.tip{position:fixed;z-index:30;background:var(--ink);color:var(--bg);font-size:.84rem;line-height:1.35;padding:5px 9px;border-radius:2px;pointer-events:none;max-width:260px}
+.tip[hidden]{display:none}
+button.act .cd{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--amber);transform-origin:left;transform:scaleX(0)}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+.map{display:grid;gap:3px;max-width:390px;font-family:Alegreya,Georgia,serif}
+.cell{aspect-ratio:1;display:grid;place-items:center;font:inherit;font-size:1.05rem;color:var(--muted);border-radius:3px;background:transparent;border:0;padding:0}
+.cell.seen{background:var(--panel)}
+.cell.tree{color:var(--moss)}
+.cell.stream{color:var(--water)}
+.cell.horizon{color:var(--line)}
+.cell.adj{cursor:pointer;box-shadow:inset 0 0 0 1px var(--muted)}
+.cell.adj:hover{box-shadow:inset 0 0 0 2px var(--ink)}
+.cell.home{background:var(--amber-glow);color:var(--amber);font-weight:700;font-size:1.25rem}
+.cell.dog{background:var(--ink);color:var(--bg)}
+.cell.whiff{animation:whiff 1s ease-out}
+@keyframes whiff{0%{box-shadow:inset 0 0 0 2px var(--amber);background:var(--amber-glow)}100%{box-shadow:inset 0 0 0 0 transparent}}
+
+.trail{position:relative;height:8px;background:var(--line);border-radius:4px;margin:34px 0 10px;max-width:390px}
+.trail i{display:block;height:100%;background:var(--amber);border-radius:4px;transition:width .6s}
+.trail span{position:absolute;top:-26px;transform:translateX(-50%);transition:left .6s;font-size:1.1rem}
+.trail .road{position:absolute;top:-4px;width:3px;height:16px;background:var(--muted)}
+.pathinfo{max-width:390px;color:var(--muted);margin:0}
+.pathinfo b{color:var(--ink);font-weight:500}
+.legend{font-size:.86rem;color:var(--muted);margin-top:12px;max-width:390px}
+.legend span{white-space:nowrap;margin-right:12px}
+
+.end{margin-top:22px;font-family:Alegreya,Georgia,serif}
+.end h2{font-weight:600;font-size:1.4rem;margin:0 0 8px}
+.pop{position:fixed;inset:0;background:rgba(12,18,15,.55);display:grid;place-items:center;padding:20px;z-index:20}
+.pop[hidden]{display:none}
+.pop-card{background:var(--bg);color:var(--ink);max-width:440px;width:100%;padding:24px 24px 20px;border:1px solid var(--ink);border-radius:3px}
+.pop-card h2{font-family:Alegreya,Georgia,serif;font-weight:600;font-size:1.4rem;margin:0 0 10px}
+.pop-card p{font-family:Alegreya,Georgia,serif;font-size:1.08rem;line-height:1.55;margin:0 0 18px}
+.pop-card p.pop-note{font-family:"Alegreya Sans",system-ui,sans-serif;font-size:.98rem;font-weight:500;color:var(--amber);margin:-8px 0 18px}
+.pop-btns{display:flex;flex-direction:column;gap:8px}
+.dbg{position:fixed;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:25;background:var(--bg);color:var(--ink);border:1px dashed var(--ink);padding:8px;max-width:330px;font-size:.78rem}
+.dbg-b{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.dbg button{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:3px 6px;cursor:pointer}
+.dbg pre{margin:0;white-space:pre-wrap;font-size:.74rem;color:var(--muted)}
+h3.jt{font-family:Alegreya,Georgia,serif;font-weight:600;font-size:1.15rem;margin:28px 0 6px}
+.journal{list-style:none;margin:0;padding:0;max-width:390px;font-family:Alegreya,Georgia,serif;font-size:.98rem;line-height:1.45}
+.journal li{margin:0 0 9px}
+.journal span{display:block;color:var(--muted);font-family:"Alegreya Sans",system-ui,sans-serif;font-size:.8rem}
+footer{margin-top:36px}
+.link{background:none;border:0;padding:0;font:inherit;color:var(--muted);text-decoration:underline;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.bar i,.trail i,.trail span{transition:none}.cell.whiff{animation:none;box-shadow:inset 0 0 0 1px var(--amber)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The Way Home</h1>
+    <p>Prototype of the first zone: the forest</p>
+  </header>
+  <main class="layout">
+    <section class="log" id="log" aria-live="polite"></section>
+    <section>
+      <div id="stats"></div>
+      <div class="actions" id="actions"></div>
+      <div class="choice" id="choice" hidden></div>
+      <div class="end" id="end" hidden></div>
+    </section>
+    <section id="mapside"></section>
+  </main>
+  <footer><button class="link" id="restart">Start over</button></footer>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<div class="pop" id="pop" hidden>
+  <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="popT">
+    <h2 id="popT"></h2>
+    <p id="popP"></p>
+    <p id="popN" class="pop-note" hidden></p>
+    <div class="pop-btns" id="popB"></div>
+  </div>
+</div>
+
+<script>
+const GW=7,GH=5,HW=9,GOAL=60,ROAD_AT=22,FRIEND_AT=5,KEY='way-home-v4';
+const rnd=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rnd(a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let S,terrain;
+const DBG={on:/debug/.test(location.search+location.hash),speed:1};
+
+function makeTerrain(){
+  const t=[];
+  for(let y=0;y<GH;y++){t.push([]);for(let x=0;x<GW;x++)t[y].push(y>0&&Math.random()<.22?'tree':'grass');}
+  const a=pick([0,1,5,6]);for(let y=1;y<GH;y++)t[y][a]='stream';
+  t[GH-1][3]='grass';
+  return t;
+}
+
+function freshState(){
+  return {phase:1,unlock:{map:false,catch:false,drink:false,sleep:false},sniffs:0,sleepUntil:0,hunger:70,water:65,energy:80,mice:0,caught:0,scent:0,
+    x:3,y:GH-1,seen:new Set(),homeX:rnd(GW),rangeW:0,rangeN:0,rangeStart:0,homeShow:0,
+    steps:0,progress:0,walkAcc:0,
+    sleepMult:1,hole:false,slept:false,mouseMult:1,mouseBonus:false,warned:false,
+    friend:null,friendship:0,extraDays:0,friendAcc:0,memory:false,memoryUsed:false,
+    rain:0,roadDone:false,roadPending:false,choice:null,choiceVer:0,popup:null,
+    popT:0,nextPop:0,sniffFx:0,diary:[],diaryTotal:0,found:[],zone:0,lastTod:'',choiceKind:'',friendAway:0,forageAcc:0,drinkAcc:0,busy:{},over:false,intro:true,quiet:false,last:Date.now(),log:[]};
+}
+
+function reset(){
+  try{localStorage.removeItem(KEY);}catch(e){}
+  S=freshState();terrain=makeTerrain();
+  reveal();updateRange();S.homeShow=S.rangeStart+rnd(S.rangeW);
+  closePop();
+  playIntro();render();
+}
+
+const INTRO=[
+  ['You are running along the edge of a village. It smells of smoke, hay and strangers’ chickens.',''],
+  ['A man steps out from behind a fence.',''],
+  ['The man shouts and stamps his foot.','bad'],
+  ['You run. For a long time. Until you run out of breath.',''],
+  ['The village is far behind. There are only pines around, and not one of them smells familiar.',''],
+  ['Somewhere far away, at the very edge of the wind, is the smell of home.','warm']
+];
+let introTimers=[];
+function playIntro(){
+  introTimers.forEach(clearTimeout);introTimers=[];
+  S.intro=true;
+  INTRO.forEach(([t,c],i)=>introTimers.push(setTimeout(()=>{
+    say(t,c);
+    if(i===INTRO.length-1){S.intro=false;S.last=Date.now();render();}
+  },300+i*1900)));
+}
+
+function say(t,c=''){
+  if(S.quiet&&!c)return;
+  S.log.unshift({t,c});S.log=S.log.slice(0,40);renderLog();
+}
+function clampAll(){for(const k of ['hunger','water','energy'])S[k]=clamp(S[k],0,100);}
+const onStream=()=>S.phase===1&&terrain[S.y][S.x]==='stream';
+const tod=()=>{const h=new Date().getHours();return h<5?'night':h<11?'morning':h<17?'day':h<21?'evening':'night';};
+const isNight=()=>tod()==='night';
+function diary(t){
+  const d=new Date(),hm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const w=tod();S.diary.unshift({when:w[0].toUpperCase()+w.slice(1)+', '+hm,t});S.diary=S.diary.slice(0,30);S.diaryTotal++;
+}
+function note(t,c=''){if(S.quiet)diary(t);else say(t,c);}
+const practice=()=>Math.min(.3,S.caught*.01);
+const huntPct=()=>Math.round(28*S.mouseMult*(1+practice()));
+const ZONES=[
+  {at:0,name:'pine forest',enter:''},
+  {at:12,name:'forest edge',enter:'The pines thin out. Light comes through between the trunks.'},
+  {at:28,name:'open fields',enter:'The forest ends. Ahead are open fields and a wide sky.'},
+  {at:42,name:'farms and villages',enter:'Fences, barns, the smell of cows. Villages, but not yours.'}
+];
+const zoneIdx=()=>{let z=0;ZONES.forEach((o,i)=>{if(S.progress>=o.at)z=i;});return z;};
+const WALKZ=[
+  ['Step by step between the pines.','Pine needles crunch under your paws.','A woodpecker knocks somewhere above.','You jump over a fallen tree.'],
+  ['The forest thins out. More sky, fewer trees.','A path, then no path. You keep walking anyway.','Birch trees now, white like the dog you met.'],
+  ['Grass up to your belly. It tickles.','A hawk circles above the field.','The wind brings the smell of a village. Not yours.','The sky is so big here.'],
+  ['A dog barks behind a fence. You don’t stop.','Someone is cooking soup. Not for you.','A cat watches you from a windowsill.','Church bells, far away.']
+];
+const NIGHTW=['Night. You walk slower, ears turned to every sound.','An owl calls. You keep to the shadows.','The stars are out. Home is under one of them.'];
+const TODMSG={morning:'Morning. Dew on your fur, and every smell is sharp.',day:'The sun is high. The path is warm under your paws.',evening:'Evening. The shadows grow long.',night:'Night falls. You slow down, but you keep going.'};
+const FINDS=[
+  ['an old tennis ball','It’s chewed and smells of someone else’s yard.'],
+  ['a crow feather','Black and shiny. You carry it for a while, just because.'],
+  ['a child’s mitten','It smells of milk and warm hands.'],
+  ['a piece of a leash','Not yours. But it makes you think of yours.'],
+  ['a bottle cap','It shines in the sun. Useless and wonderful.'],
+  ['a perfect stick','The best stick. You can’t leave it behind.'],
+  ['a lost sock','A human sock. It smells like a good human.']
+];
+
+/* ---------- home guess ---------- */
+function reveal(){
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const x=S.x+dx,y=S.y+dy;
+    if(x>=0&&x<GW&&y>=0&&y<GH)S.seen.add(x+','+y);
+  }
+}
+function widthFor(){
+  let w,N=S.phase===1?GW:HW;
+  if(S.phase===1)w=S.scent>=4?3:S.scent>=2?5:7;
+  else w=S.scent>=20?1:S.scent>=12?3:S.scent>=8?5:9;
+  if(S.rain>0)w=Math.min(N,w+2);
+  return w;
+}
+function updateRange(){
+  const N=S.phase===1?GW:HW,w=widthFor();
+  if(w!==S.rangeW||N!==S.rangeN){
+    S.rangeW=w;S.rangeN=N;
+    if(S.homeX>=N)S.homeX=rnd(N);
+    const lo=Math.max(0,S.homeX-w+1),hi=Math.min(N-w,S.homeX);
+    S.rangeStart=lo+rnd(hi-lo+1);
+  }
+}
+const accuracy=()=>({1:1,3:.8,5:.6,7:.5,9:.4}[S.rangeW]||.4);
+const courseText=()=>S.rangeW>=9?'guessing':S.rangeW>=5?'roughly that way':S.rangeW===3?'almost sure':'straight home';
+const wellFed=()=>S.energy>=50&&S.hunger>=50&&S.water>=50;
+function speed(){
+  if(S.phase!==2||S.over||S.choice||S.popup||S.intro)return 0;
+  if(S.sleeping)return 0;
+  let s=wellFed()?1:.7;
+  if(S.rain>0)s*=.8;
+  if(isNight())s*=.8;
+  return s;
+}
+function paceText(){
+  if(S.sleeping)return 'sleeping';
+  if(S.choice)return 'waiting by the road';
+  const s=speed();
+  if(s===0)return 'standing';
+  return (wellFed()?'brisk':'steady')+(isNight()?', slower in the dark':'')+(S.rain>0?', slowed by rain':'');
+}
+const nextT=s=>{
+  const list=S.phase===1?[5]:[8,12,20];
+  const n=list.find(v=>v>s);
+  if(!n)return '';
+  return S.phase===1?` <small>(at ${n} you’ll know which way to go)</small>`:` <small>(at ${n} your course gets sharper)</small>`;
+};
+
+/* ---------- actions ---------- */
+const ACTIONS=[
+ {id:'catch',cd:2500,label:()=>'Hunt a mouse',sub:()=>'costs energy',show:()=>S.unlock.catch,can:()=>S.energy>=5,run(){
+   S.energy-=5;
+   if(S.mouseBonus||Math.random()<.28*S.mouseMult*(1+practice())){
+     S.mouseBonus=false;S.mice++;S.caught++;
+     say(pick(['A pounce, a snap of teeth. A mouse.','The mouse didn’t even have time to squeak.','You sit by the burrow for a long time. And it pays off.']));
+   } else say(pick(['The mouse darts into its hole.','Only dry leaves in your teeth.','There was a rustle. There was no mouse.','You pounce too early. The mouse is gone.','Your paws slip on the wet grass. Missed.','You breathe too loudly. Mice can hear.']));
+ }},
+ {id:'eat',cd:800,label:()=>'Eat a mouse',sub:()=>'eases hunger',show:()=>S.caught>0||S.mice>0,can:()=>S.mice>0,run(){
+   S.mice--;S.hunger+=22;say('Warm food. You feel better.');
+ }},
+ {id:'drink',cd:3000,label:()=>onStream()?'Drink from the stream':'Look for water',sub:()=>onStream()?'clean water':'water can be bad',show:()=>S.unlock.drink,can:()=>S.energy>=4,run(){
+   if(onStream()){S.water+=40;say('Cold water from the stream. Nothing tastes better.');return;}
+   S.energy-=4;
+   if(S.rain>0){S.water+=35;say('The rain has filled every hollow. Drink all you want.');}
+   else if(S.phase===2&&Math.random()<.3){S.water+=40;say('You come across a stream. Cold, clean water.');}
+   else if(Math.random()<.2){S.water+=20;S.energy-=8;say('The puddle tastes bitter. Your stomach churns.','bad');}
+   else{S.water+=25;say(pick(['A muddy puddle, but it’s drinkable.','Water in a tyre rut. It’ll do.']));}
+ }},
+ {id:'sniff',cd:2000,label:()=>'Sniff around',sub:()=>'home, food, water or danger',show:()=>true,can:()=>S.energy>=3,run(){
+   S.energy-=3;S.sniffFx=Date.now();S.sniffs++;
+   if(S.sniffs===1){scriptedSniff();reveal();updateRange();return;}
+   if(S.sniffs>=5&&!S.unlock.catch){hungerWakes();reveal();return;}
+   const r=Math.random(),streams=nearHiddenStream();
+   if(r<.2&&!S.mouseBonus&&S.unlock.catch){S.mouseBonus=true;say('There’s a mouse nest under the roots. Your next hunt will surely succeed.','warm');}
+   else if(r<.35&&streams.length&&S.unlock.drink){streams.forEach(k=>S.seen.add(k));say('It smells of water. There’s a stream nearby, and now you know where.','warm');}
+   else if(r<.5&&!S.warned){S.warned=true;say('It smells of tobacco and anger. A man walks here. You’ll be on your guard.');}
+   else homeTrace();
+   if(S.phase===1)reveal();
+   updateRange();
+ }},
+ {id:'sleep',cd:0,label:()=>S.sleeping&&S.sleepKind!=='hollow'?'Sleeping…':(S.phase===2?'Nap by the path':'Sleep'),sub:()=>S.sleeping&&S.sleepKind!=='hollow'?`energy ${Math.round(S.energy)}/${Math.round(S.sleepTarget||70)}`:(S.energy>=70?'not tired yet':'+60 energy, about 23 s'),show:()=>S.unlock.sleep,can:()=>!S.sleeping&&S.energy<70,run(){
+   startSleep('plain',60,23);
+ }},
+ {id:'hollow',cd:0,label:()=>S.sleeping&&S.sleepKind==='hollow'?'Sleeping in the hollow…':'Sleep in a hollow',sub:()=>S.sleeping&&S.sleepKind==='hollow'?`energy ${Math.round(S.energy)}/${Math.round(S.sleepTarget)}`:(S.energy>=70?'not tired yet':'+70 energy, about 30 s'),show:()=>S.unlock.sleep&&S.hole,can:()=>!S.sleeping&&S.energy<70,run(){
+   startSleep('hollow',70,30);
+ }},
+ {id:'dig',cd:4000,label:()=>'Learn to dig a sleeping hollow',sub:()=>'a warmer, longer sleep',show:()=>S.slept&&!S.hole,can:()=>S.energy>=15,run(){
+   S.energy-=15;S.hole=true;S.sleepMult=1.3;
+   say('You dig until your paws ache. Now you know how to make a place to sleep.','warm');
+ }},
+];
+function startSleep(kind,gain,dur){
+  S.sleeping=true;S.slept=true;S.sleepKind=kind;
+  S.sleepTarget=Math.min(100,S.energy+gain);S.sleepRate=(S.sleepTarget-S.energy)/dur;
+  say(kind==='hollow'?'You curl up in your hollow. The earth holds the warmth.':'You curl up under the roots and fall asleep. It’s cold.');
+}
+function doAction(a){
+  const now=Date.now();
+  if(S.over||S.intro||S.choice||S.popup||S.sleeping||(S.busy[a.id]||0)>now||!a.can())return;
+  a.run();S.busy[a.id]=now+a.cd;clampAll();render();save();
+}
+function hungerWakes(){
+  S.unlock.catch=true;S.unlock.drink=true;S.mouseBonus=true;
+  nearHiddenStream().forEach(k=>S.seen.add(k));
+  say('Your stomach suddenly growls. You haven’t eaten since you got lost. And your mouth is dry.','warm');
+  say('Something rustles in the grass. It smells of mice. And somewhere nearby, water.','warm');
+}
+function scriptedSniff(){
+  if(S.sniffs===1){
+    S.unlock.map=true;S.scent++;
+    say('You breathe in. Pine needles, moss, strange animals. And somewhere very far away, a thin thread of something that smells like home.','warm');
+    say('You could try walking. Anywhere at all.');
+  } else if(S.sniffs===2){
+    S.unlock.catch=true;S.mouseBonus=true;
+    say('Something rustles in the grass. It smells of mice. Your stomach answers at once.','warm');
+  } else {
+    S.unlock.drink=true;nearHiddenStream().forEach(k=>S.seen.add(k));
+    say('It smells of water. There are puddles nearby, maybe even a stream.','warm');
+  }
+}
+function homeTrace(){
+  if(S.rain>0&&Math.random()<.5){say('The rain washes the smells away. Almost nothing.');return;}
+  const before=S.scent;S.scent++;
+  if(S.phase===1&&S.scent>=5){startJourney();return;}
+  if(S.phase===1&&before<2&&S.scent>=2) say('The wind shifts for a moment, and you catch it. Home. Somewhere over there.','warm');
+  else if(S.phase===2&&before<12&&S.scent>=12) say('The smell grows clearer. You turn a little and walk with more confidence.','warm');
+  else if(S.phase===2&&before<20&&S.scent>=20) say('Now you know for sure. Home is that way.','warm');
+  else say(pick(['A thread of a familiar smell. One more trace of home.','Something dear breaks through the smell of pine. One more trace.','That’s how your bowl used to smell. Faintly, but it did. One more trace.']));
+}
+function nearHiddenStream(){
+  if(S.phase!==1)return [];
+  const out=[];
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)
+    if(terrain[y][x]==='stream'&&!S.seen.has(x+','+y)&&Math.abs(x-S.x)+Math.abs(y-S.y)<=4)out.push(x+','+y);
+  return out;
+}
+function startJourney(){
+  S.phase=2;S.homeX=rnd(HW);S.rangeW=0;updateRange();S.homeShow=S.rangeStart+rnd(S.rangeW);S.last=Date.now();
+  say('You understand: you can’t stay here. Home is out there, ahead, and you have to walk to it.','warm');
+  say('You take a step. Then another. And you don’t stop anymore.','warm');
+}
+
+/* ---------- phase 1: wandering ---------- */
+function move(dx,dy){
+  if(S.phase!==1||!S.unlock.map||S.over||S.choice||S.intro||S.popup||S.sleeping)return;
+  const nx=S.x+dx,ny=S.y+dy;
+  if(nx<0||nx>=GW||ny<0||ny>=GH)return;
+  if(ny===0){say(pick(['Thick woods ahead. First you need to know which way to go.','You run into fallen trees. Not this way. Or this way? Hard to say.']));return;}
+  if(S.energy<6){say('Your legs won’t obey. You need to sleep.','bad');return;}
+  S.energy-=6;if(S.unlock.catch){S.water-=2;S.hunger-=2;}S.x=nx;S.y=ny;S.steps++;
+  reveal();
+  const r=Math.random();
+  if(r<.08)badPerson();
+  else if(r<.14&&S.rain===0)startRain();
+  else say(pick(['You take a step and stop. Where now?','It smells the same here as there. Strange.','You circle between the pines.','A step forward, a step back. Nothing familiar.']));
+  clampAll();render();save();
+}
+
+/* ---------- phase 2: the journey ---------- */
+const WALK=['Step by step. The forest thins out.','Pine needles crunch under your paws.','The wind brings the smell of a village. Not yours.','A dog barks in the distance. Not the white dog.','The sun is setting. You keep walking.','A path, then no path. You keep walking anyway.','You jump over a fallen tree.'];
+function step(){
+  S.steps++;S.progress=Math.min(GOAL,S.progress+accuracy());
+  if(S.energy>20)S.energy-=.8;S.water-=.5;S.hunger-=.4;
+  const z=zoneIdx();if(z>S.zone){S.zone=z;note(ZONES[z].enter,'warm');}
+  if(S.steps%6===0){
+    const line=isNight()&&Math.random()<.4?pick(NIGHTW):pick(WALKZ[S.zone]);
+    if(!S.quiet)say(line);else if(S.steps%24===0)diary(line);
+  }
+  if(Math.random()<.025&&S.found.length<FINDS.length){
+    const it=pick(FINDS.filter(f=>!S.found.includes(f[0])));S.found.push(it[0]);
+    note(`You find ${it[0]}. ${it[1]}`,'warm');
+  }
+  if(!S.friend&&S.progress>=FRIEND_AT)meetFriend();
+  if(!S.roadDone&&S.progress>=ROAD_AT){
+    S.roadDone=true;S.roadPending=true;
+    if(S.friend==='with')friendChoice();
+    else if(S.quiet){S.roadPending=false;S.water-=8;diary('A busy road. You wait at the roadside until it goes quiet, then cross.');}
+    else roadChoice();
+  }
+  else if(Math.random()<.03)badPerson();
+  if(S.progress>=GOAL)win();
+}
+function meetFriend(){
+  S.friend='with';S.friendship=1;S.mouseMult=1.5;
+  say('A white dog steps out of the bushes. He sniffs you for a long time, then wags his tail and walks beside you.','warm');
+  say('He shows you where mice rustle in the grass. Now you hunt together.','warm');
+}
+function friendChoice(){
+  setChoice(S.extraDays===0?'The white dog sits down by the road and goes no further. His land ends here.':'A new morning. The white dog is sitting by the road again.',[
+    {label:'Stay one more day',sub:'the home scent will fade a little',fn(){
+      S.energy+=10;S.scent=Math.max(0,S.scent-1);S.friendship++;S.extraDays++;
+      say('The white dog brings mice all day, and there’s water in the ditch by the road. But the smell of home grows a little weaker.');
+      if(S.extraDays===1){S.mouseMult=1.7;say('All day he teaches you to wait by a burrow without twitching an ear. You catch mice even more often now.','warm');}
+      else if(S.extraDays===2)say('The white dog has nothing more to teach you. But you still don’t want to leave.','warm');
+      else say(pick(['You lie side by side and watch the road.','He licks your ear. You don’t mind.','You chase each other between the pines.']));
+      updateRange();clampAll();friendChoice();
+    }},
+    {label:'Move on',sub:'say goodbye',fn(){
+      say('The white dog sits down by the old fence. You look back. He is watching you go.');
+      if(S.friendship>=4){S.memory=true;say('You know you will remember his warm side.','warm');}
+      else if(S.friendship>=2){S.mice+=3;say('At the last moment he drops three mice at your paws. A gift for the road.','warm');}
+      S.friend='gone';roadChoice();
+    }}
+  ],'friend');
+}
+function roadChoice(){
+  setChoice('A road lies ahead. Cars rush past one after another, and there’s no crossing in sight.',[
+    {label:'Wait until it’s quiet',sub:'slow, you’ll get thirsty',fn(){
+      S.water-=8;S.hunger-=6;say('You wait at the roadside for an eternity. At last the road is empty.');
+      setChoice('The road is empty. Not a single car.',[
+        {label:'Cross the road',sub:'it’s safe now',fn(){say('You trot across. The asphalt is still warm from the sun.');S.roadPending=false;}}
+      ],'road');
+    }},
+    {label:'Run across now',sub:'fast, but dangerous',fn(){
+      if(Math.random()<.4){S.energy-=20;say('Brakes screech. You make it, but bang your paw on the curb.','bad');}
+      else say('One dash and you’re on the other side. Your heart is pounding.');
+      S.roadPending=false;
+    }}
+  ],'road');
+}
+function setChoice(text,options,kind=''){S.choice={text,options};S.choiceKind=kind;S.choiceVer++;}
+function badPerson(){
+  if(S.warned){S.warned=false;say('That familiar smell of tobacco. You slip into the bushes in time, and the man walks past.','warm');return;}
+  if(S.mice>0){const l=Math.min(2,S.mice);S.mice-=l;say(`A man in a work jacket swings a stick. You jump away and drop ${l===1?'a mouse':'two mice'}.`,'bad');}
+  else{S.energy-=10;say('A man shouts and stamps his foot. You run for a long time, until you run out of breath.','bad');}
+}
+function startRain(){
+  S.rain=40;const l=Math.min(2,S.scent);S.scent-=l;
+  note(l?`It starts to rain. The smell of home washes away (Home scent −${l}). At least there are puddles everywhere.`:'It starts to rain. There are puddles everywhere.',l?'bad':'');
+  updateRange();
+}
+function win(){
+  S.over=true;S.choice=null;S.roadPending=false;
+  say('The wind hits your nose, and there it is. The smell of home, strong and clear.','warm');
+}
+
+/* ---------- popups ---------- */
+const POPUPS=[
+ {id:'field',zones:[2,3],title:'A field',
+  text:()=>`The forest opens up. Big animals are grazing in a field. They are ${pick(['cows','goats','sheep'])}, but you don’t know that word. The smell is strange: warm, grassy, completely new.`,
+  look:[
+   {p:.35,c:'warm',t:'There’s a trough full of clean water by the fence. The animals don’t mind sharing.',fx(){S.water+=35;}},
+   {p:.3,c:'warm',t:'A frightened mouse jumps out from under the hooves. Straight into your teeth.',fx(){S.mice+=1;S.caught+=1;}},
+   {p:.35,c:'bad',t:'A sheepdog bursts out from behind the herd and chases you off, barking. You run all the way back to the forest.',fx(){S.energy-=12;}}
+  ],
+  skip:'You walk around the edge of the field. The strange smell follows you for a long time.'},
+ {id:'barn',zones:[3],title:'An old barn',
+  text:()=>'A thin squeaking comes from a crack in an old barn. It smells of milk and hay.',
+  look:[
+   {p:.35,c:'bad',t:'Kittens in the hay, and their mother next to them. She hisses and swats your nose. You leave with dignity. Almost.',fx(){S.energy-=6;}},
+   {p:.35,c:'warm',t:'In the corner is a bowl of leftover porridge. Someone feeds a cat here. Today the cat will have to do without.',fx(){S.hunger+=18;}},
+   {p:.3,c:'warm',t:'It was mice squeaking. Lots of mice. You get two of them.',fx(){S.mice+=2;S.caught+=2;}}
+  ],
+  skip:'You walk past. The squeaking fades behind you.'},
+ {id:'fire',zones:[0,1],title:'Smoke above the trees',
+  text:()=>'A campfire smokes between the pines. The smell of grilled meat is so strong it makes your head spin. You hear voices.',
+  look:[
+   {p:.4,c:'warm',t:'A man in a funny hat tosses you a piece of sausage. Then another.',fx(){S.hunger+=30;}},
+   {p:.3,c:'bad',t:'Someone jumps up and waves their arms. You flee into the woods.',fx(){S.energy-=8;}},
+   {p:.3,c:'warm',t:'The people are gone. There are bones by the smouldering coals. Better than nothing.',fx(){S.hunger+=10;}}
+  ],
+  skip:'You swallow and walk on. The voices fade.'},
+ {id:'hedgehog',title:'A rustling ball',
+  text:()=>'Something round rustles and snorts under a bush. It smells like a mouse, only angrier.',
+  look:[
+   {p:.5,c:'bad',t:'You poke your nose in. Your nose deeply regrets it.',fx(){S.energy-=4;}},
+   {p:.5,c:'warm',t:'The ball unrolls and runs off. Where it sat lies someone’s half-eaten bone.',fx(){S.hunger+=10;}}
+  ],
+  skip:'You decide not to mess with snorting bushes.'}
+];
+const snap=()=>({energy:S.energy,hunger:S.hunger,water:S.water,mice:S.mice});
+function deltaText(a){
+  const n={hunger:'Food',water:'Water',energy:'Energy',mice:'Mice'};
+  return Object.keys(n).map(k=>{const d=Math.round(S[k]-a[k]);return d?`${n[k]} ${d>0?'+':'−'}${Math.abs(d)}`:'';}).filter(Boolean).join(', ');
+}
+let lastPop='';
+function popupEvent(force){
+  const pool=POPUPS.filter(e=>e.id!==lastPop&&(!e.zones||e.zones.includes(S.zone)));const ev=force?POPUPS.find(e=>e.id===force):pick(pool.length?pool:POPUPS);lastPop=ev.id;S.popup=ev.id;
+  showPop(ev.title,ev.text(),[
+    {label:'Go and look',fn(){
+      let r=Math.random(),o=ev.look[ev.look.length-1];
+      for(const x of ev.look){if(r<x.p){o=x;break;}r-=x.p;}
+      const a=snap();o.fx();clampAll();
+      const note=deltaText(a);
+      say(o.t+(note?` (${note})`:''),o.c);
+      showPop(ev.title,o.t,[{label:'Move on',fn:closePop}],note);
+    }},
+    {label:'Move on',fn(){say(ev.skip);closePop();}}
+  ]);
+}
+function showPop(title,text,btns,note=''){
+  const pn=document.getElementById('popN');pn.textContent=note;pn.hidden=!note;
+  document.getElementById('popT').textContent=title;
+  document.getElementById('popP').textContent=text;
+  const b=document.getElementById('popB');b.innerHTML='';
+  btns.forEach(o=>{const e=document.createElement('button');e.className='act';e.textContent=o.label;e.onclick=()=>{o.fn();render();save();};b.appendChild(e);});
+  document.getElementById('pop').hidden=false;b.firstChild.focus();
+}
+function closePop(){if(S)S.popup=null;document.getElementById('pop').hidden=true;if(S)S.last=Date.now();}
+
+/* ---------- time ---------- */
+function second(d){
+  if(S.unlock.catch){S.hunger-=.2*d;S.water-=(S.rain>0?.05:.25)*d;}
+  if(S.unlock.catch){const h=huntPct(),p=S.lastHuntPct||28;if(h>=p+2){S.lastHuntPct=h;note(`Your hunting gets better. Success +${h-p}% (now ${h}%).`,'warm');}}
+  if(S.sleeping){const tg=S.sleepTarget||70;S.energy+=(S.sleepRate||1.67)*d;if(S.energy>=tg-.01){S.energy=tg;S.sleeping=false;S.sleepTarget=0;S.sleepRate=0;note('You wake up rested.');}}
+  if(S.phase===1&&(S.hunger<=0||S.water<=0)){S.energy-=.6*d;}
+  if(S.phase===2&&!S.over){
+    if(S.hunger<30){S.hunger+=.45*d;S.forageAcc+=d;if(S.forageAcc>=30){S.forageAcc=0;S.caught++;note('You catch a mouse on the way and eat it right there.');}}
+    if(S.water<30){S.water+=.55*d;S.drinkAcc+=d;if(S.drinkAcc>=30){S.drinkAcc=0;note(pick(['You drink from a puddle by the path.','A ditch with rainwater. Good enough.']));}}
+    if(S.quiet&&S.friend==='with'){S.friendAway+=d;if(S.friendAway>=300){S.friendAway=0;S.friendship++;diary(S.choiceKind==='friend'?'Another day by the road with the white dog. You hunt together and sleep back to back.':'The white dog walks so close that your shoulders touch.');}}
+    if(S.quiet&&S.choice&&S.choiceKind==='road'){S.choice=null;S.roadPending=false;S.water-=8;diary('You wait at the roadside until it goes quiet, then cross.');}
+  }
+  if(S.friend==='with'){S.friendAcc+=d;if(S.friendAcc>=8){S.friendAcc-=8;S.mice++;if(Math.random()<.25)say('The white dog brings a mouse and drops it at your paws.');}}
+  if(S.rain>0){S.rain-=d;if(S.rain<=0){S.rain=0;say('The rain has stopped. The air is full of smells again.');updateRange();}}
+  else if(S.phase===2&&Math.random()<.004*d)startRain();
+  if(S.memory&&!S.memoryUsed&&S.energy<20){S.memoryUsed=true;S.energy+=20;say('You remember the white dog’s warm side. It gets a little easier.','warm');}
+  if(S.phase===1&&S.energy<=0&&!S.sleeping){S.energy=0;S.sleeping=true;S.slept=true;say('You collapse onto the ground and lie there for a long time.','bad');}
+  if(S.phase===2){
+    S.walkAcc+=d*speed()/3;
+    while(S.walkAcc>=1&&!S.choice&&!S.over){S.walkAcc-=1;step();}
+    if(S.choice)S.walkAcc=0;
+  }
+  if(!S.unlock.sleep&&S.energy<50){S.unlock.sleep=true;say('Your paws grow heavy. You want to lie down and close your eyes.','warm');}
+  if(!S.quiet&&!document.hidden&&!S.choice&&!S.popup&&!S.over&&S.phase===2&&!S.sleeping){
+    S.popT+=d;if(!S.nextPop)S.nextPop=30+rnd(60);
+    if(S.popT>=S.nextPop){S.popT=0;S.nextPop=40+rnd(80);popupEvent();}
+  }
+  clampAll();
+}
+function tick(){
+  const now=Date.now();
+  if(S.over||S.intro||S.popup){S.last=now;return;}
+  let dt=Math.min((now-S.last)/1000,8*3600)*DBG.speed;S.last=now;
+  S.quiet=document.hidden||dt>5*DBG.speed;
+  if(S.phase===2){const t=tod();if(S.lastTod&&t!==S.lastTod)note(TODMSG[t],'warm');S.lastTod=t;}
+  while(dt>0&&!S.over){const d=Math.min(1,dt);dt-=d;second(d);}
+  S.quiet=false;
+  if(!document.hidden&&S.awayFrom!=null){
+    const ds=S.steps-S.awayFrom;S.awayFrom=null;
+    const dn=S.diaryTotal-(S.awayDiary||S.diaryTotal);S.awayDiary=null;
+    if(ds>0||dn>0)say(`While you were away, the dog walked ${ds} steps${S.choice?' and is now with the white dog by the road':''}.${dn>0?` ${dn} new ${dn===1?'entry':'entries'} in the journal.`:''}`,'warm');
+  }
+  renderStats();renderMap();save();
+}
+setInterval(tick,1000);
+setInterval(()=>{if(S)renderActions();},100);
+document.addEventListener('visibilitychange',()=>{if(!S)return;if(document.hidden){if(S.awayFrom==null){S.awayFrom=S.steps;S.awayDiary=S.diaryTotal;}save();}else tick();});
+
+/* ---------- save ---------- */
+function save(){
+  if(!S||S.intro)return;
+  try{
+    const o={...S,seen:[...S.seen],choice:null,popup:null,busy:{},log:S.log.slice(0,20),terrain};
+    localStorage.setItem(KEY,JSON.stringify(o));
+  }catch(e){}
+}
+function load(){
+  try{
+    const r=localStorage.getItem(KEY);if(!r)return false;
+    const o=JSON.parse(r);terrain=o.terrain;delete o.terrain;
+    o.seen=new Set(o.seen);o.busy={};o.awayFrom=o.steps;o.awayDiary=o.diaryTotal;
+    if(!o.unlock)o.unlock={map:true,catch:true,drink:true,sleep:true};o.choice=null;o.popup=null;o.intro=false;o.quiet=false;
+    S=o;
+    if(S.roadPending){if(S.friend==='with')friendChoice();else roadChoice();}
+    if(S.phase===2)S.lastTod=S.lastTod||tod();
+    return true;
+  }catch(e){return false;}
+}
+
+/* ---------- render ---------- */
+function renderLog(){
+  document.getElementById('log').innerHTML=S.log.map((l,i)=>`<p class="${l.c}" style="opacity:${Math.max(.18,1-i*.09)}">${l.t}</p>`).join('');
+}
+function bar(name,v){return `<div class="stat${v<25?' low':''}"><span>${name}</span><span><b>${Math.round(v)}</b>/100</span></div>`;}
+function scentBar(){
+  const max=S.phase===1?5:20;
+  return `<div class="stat scent"><span>Home scent</span><span><b>${Math.min(S.scent,max)}</b>/${max}</span></div>`;
+}
+function renderStats(){
+  const skills=[];
+  
+  if(S.hole)skills.push('sleeping hollow +30%');
+  const friend=S.friend==='with'?'the white dog':S.friend==='gone'?'nobody (the white dog stayed by the road)':'nobody';
+  document.getElementById('stats').innerHTML=
+    (S.unlock.map?scentBar():'')+bar('Energy',S.energy)+(S.unlock.catch?bar('Food',S.hunger)+bar('Water',S.water):'')+
+    `<ul class="facts">
+      ${S.unlock.catch?`<li>Mice: <b>${S.mice}</b></li>`:''}
+      ${S.unlock.map&&nextT(S.scent)?`<li>${nextT(S.scent)}</li>`:''}
+      ${S.mouseBonus?'<li><b>You know where a mouse nest is</b></li>':''}
+      ${S.warned?'<li><b>You are on your guard</b></li>':''}
+      ${S.phase===2?`<li>Time: <b>${tod()}</b></li><li>Around: <b>${ZONES[S.zone].name}</b></li>`:''}
+      ${S.rain>0?'<li>Weather: <b>rain</b></li>':''}
+      ${S.friend?`<li>With you: <b>${friend}</b>${S.friend==='with'?`, friendship ${S.friendship}`:''}</li>`:''}
+      ${skills.length?`<li>Skills: <b>${skills.join(', ')}</b></li>`:''}
+      ${S.found.length?`<li>Treasures: <b>${S.found.join(', ')}</b></li>`:''}
+    </ul>`;
+  renderEnd();
+}
+function renderEnd(){
+  const e=document.getElementById('end');
+  if(!S.over){e.hidden=true;return;}
+  if(!e.hidden)return;
+  const fr=S.friendship>=4?'The white dog stays in your memory, warm and real.':S.friendship>=2?'The white dog saw you off with a gift.':'You and the white dog said goodbye by the road.';
+  e.innerHTML=`<h2>End of the first zone</h2><p>Home is still far away, but now you know the way.</p><p>${fr}</p><p>Steps: ${S.steps}. Mice caught: ${S.caught}. Home scent: ${S.scent}.</p><button class="act" id="again">Play again</button>`;
+  e.hidden=false;document.getElementById('again').onclick=reset;
+}
+const btns={};
+function buildActions(){
+  const box=document.getElementById('actions');box.innerHTML='';
+  for(const a of ACTIONS){
+    const b=document.createElement('button');b.className='act';
+    b.innerHTML='<span class="t"></span><small></small><i class="cd"></i>';
+    b.onclick=()=>doAction(a);
+    const w=document.createElement('div');w.className='bw';w.appendChild(b);box.appendChild(w);btns[a.id]=b;
+  }
+}
+function renderActions(){
+  const now=Date.now();
+  const box=document.getElementById('actions'),ch=document.getElementById('choice');
+  box.hidden=!!S.choice||S.over||S.intro;
+  for(const a of ACTIONS){
+    const b=btns[a.id];
+    b.parentNode.style.display=a.show()?'':'none';
+    b.querySelector('.t').textContent=a.label();
+    b.parentNode.dataset.tip=a.sub();
+    const left=(S.busy[a.id]||0)-now;
+    b.disabled=left>0||!a.can()||(S.sleeping&&a.id!=='sleep'&&a.id!=='hollow');
+    b.querySelector('.cd').style.transform=`scaleX(${left>0?left/a.cd:0})`;
+  }
+  if(S.choice&&ch.dataset.v!=String(S.choiceVer)){
+    ch.dataset.v=S.choiceVer;ch.innerHTML=`<p>${S.choice.text}</p>`;
+    S.choice.options.forEach(o=>{
+      const b=document.createElement('button');b.className='act';
+      b.textContent=o.label;b.dataset.tip=o.sub;
+      b.onclick=()=>{S.choice=null;o.fn();clampAll();S.last=Date.now();render();save();};
+      ch.appendChild(b);
+    });
+  }
+  ch.hidden=!S.choice;
+}
+function whiffAt(x,y,isTop){
+  if(Date.now()-S.sniffFx>=1000)return false;
+  if(isTop)return x>=S.rangeStart&&x<S.rangeStart+S.rangeW;
+  return !(x===S.x&&y===S.y)&&Math.abs(x-S.x)+Math.abs(y-S.y)<=2;
+}
+function renderMap(){
+  const side=document.getElementById('mapside');
+  if(S.phase===1){
+    if(!S.unlock.map){side.innerHTML='';return;}
+    let h=`<div class="map" style="grid-template-columns:repeat(${GW},1fr)">`;
+    for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+      const seen=S.seen.has(x+','+y),k=terrain[y][x];
+      let cls='cell',c='';
+      if(x===S.x&&y===S.y){cls+=' dog';c='🐾';}
+      else if(y===0&&x>=S.rangeStart&&x<S.rangeStart+S.rangeW){cls+=' home';c=S.rangeW===1?'⌂':'?';}
+      else if(y===0){cls+=' horizon';c='';}
+      else if(!seen)c='·';
+      else{cls+=' seen '+k;c={grass:'',tree:'↟',stream:'≈'}[k];}
+      if(whiffAt(x,y,y===0))cls+=' whiff';
+      const adj=!S.over&&!S.choice&&!S.intro&&!S.sleeping&&y>0&&Math.abs(x-S.x)+Math.abs(y-S.y)===1;
+      h+=adj?`<button class="${cls} adj" data-x="${x}" data-y="${y}" aria-label="Walk here">${c}</button>`:`<div class="${cls}">${c}</div>`;
+    }
+    h+=`</div><p class="legend"><span>🐾 you</span><span>? home is somewhere here</span><span>≈ stream</span><span>↟ trees</span><br>Use the arrow keys or tap a neighbouring square. Sniff around to work out which way to go.</p>`;
+    side.innerHTML=h;
+  } else {
+    let h=`<div class="map" style="grid-template-columns:repeat(${HW},1fr)">`;
+    for(let x=0;x<HW;x++){
+      const home=S.over?x===S.homeX:(x>=S.rangeStart&&x<S.rangeStart+S.rangeW);
+      let cls='cell '+(home?'home':'horizon');
+      if(whiffAt(x,0,true))cls+=' whiff';
+      h+=`<div class="${cls}">${home?(S.over||S.rangeW===1?'⌂':'?'):''}</div>`;
+    }
+    const p=S.progress/GOAL*100;
+    h+=`</div>
+    <ul class="facts pathinfo" style="margin-top:18px">
+      <li>Steps taken: <b>${S.steps}</b></li>
+      <li>Course: <b>${courseText()}</b></li>
+      <li>Pace: <b>${S.over?'arrived':paceText()}</b></li>
+    </ul>
+    <p class="legend">The dog walks on its own, even when you’re not watching. The surer the course, the faster home gets closer.</p>
+    ${S.diary.length?`<h3 class="jt">Journal</h3><ul class="journal">${S.diary.slice(0,10).map(e=>`<li><span>${e.when}</span>${e.t}</li>`).join('')}</ul>`:''}`;
+    side.innerHTML=h;
+  }
+}
+function render(){renderStats();renderActions();renderMap();renderLog();}
+
+document.getElementById('mapside').addEventListener('click',e=>{
+  const b=e.target.closest('button.adj');if(!b)return;
+  move(+b.dataset.x-S.x,+b.dataset.y-S.y);
+});
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('pop').hidden===false)return;
+  const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
+  if(m&&S.phase===1){e.preventDefault();move(...m);}
+});
+function showTip(e){
+  const t=document.getElementById('tip'),b=e.target.closest&&e.target.closest('[data-tip]');
+  if(!b||!b.dataset.tip){t.hidden=true;return;}
+  t.textContent=b.dataset.tip;const r=b.getBoundingClientRect();
+  t.style.left=Math.max(8,r.left)+'px';t.style.top=(r.bottom+6)+'px';t.hidden=false;
+}
+document.addEventListener('mouseover',showTip);
+document.addEventListener('focusin',showTip);
+document.addEventListener('mouseout',e=>{if(!e.relatedTarget||!e.relatedTarget.closest||!e.relatedTarget.closest('[data-tip]'))document.getElementById('tip').hidden=true;});
+document.addEventListener('click',()=>{document.getElementById('tip').hidden=true;});
+document.getElementById('restart').onclick=reset;
+buildActions();
+if(load()){render();tick();}else reset();
+
+/* ---------- debug panel (?debug or #debug) ---------- */
+function dbgInit(){
+  if(!DBG.on)return;
+  const d=document.createElement('div');d.className='dbg';
+  d.innerHTML='<b>debug</b><div class="dbg-b"></div><pre id="dbgS"></pre>';
+  const B=[
+    ['Speed ×1 / ×10',()=>{DBG.speed=DBG.speed===1?10:1;}],
+    ['+1 hour away',()=>{if(S.awayFrom==null){S.awayFrom=S.steps;S.awayDiary=S.diaryTotal;}S.last-=3600e3;tick();}],
+    ['Skip to phase 2',()=>{if(S.phase===1){S.intro=false;Object.keys(S.unlock).forEach(k=>S.unlock[k]=true);S.scent=5;startJourney();}}],
+    ['+5 home scent',()=>{S.scent+=5;if(S.phase===1&&S.scent>=5)startJourney();updateRange();}],
+    ['Fill stats',()=>{S.energy=S.hunger=S.water=100;}],
+    ['Rain',()=>startRain()],
+    ['Bad person',()=>badPerson()],
+    ['White dog',()=>{if(S.phase===2&&!S.friend){S.progress=Math.max(S.progress,FRIEND_AT);meetFriend();}}],
+    ['Road',()=>{if(S.phase===2&&!S.roadDone)S.progress=ROAD_AT-.01;}],
+    ['Field',()=>popupEvent('field')],
+    ['Barn',()=>popupEvent('barn')],
+    ['Fire',()=>popupEvent('fire')],
+    ['Hedgehog',()=>popupEvent('hedgehog')]
+  ];
+  B.forEach(([l,f])=>{const b=document.createElement('button');b.textContent=l;b.onclick=()=>{f();clampAll();render();save();dbgState();};d.querySelector('.dbg-b').appendChild(b);});
+  document.body.appendChild(d);setInterval(dbgState,500);
+}
+function dbgState(){
+  const e=document.getElementById('dbgS');if(!e||!S)return;
+  e.textContent=[
+    `time ×${DBG.speed}   ${tod()}   zone ${S.zone}`,
+    `phase ${S.phase}   steps ${S.steps}   progress ${S.progress.toFixed(1)}/${GOAL}`,
+    `scent ${S.scent}   range ${S.rangeW}   accuracy ${accuracy()}`,
+    `energy ${S.energy.toFixed(0)}   food ${S.hunger.toFixed(0)}   water ${S.water.toFixed(0)}`,
+    `hunt ${huntPct()}%   caught ${S.caught}   mice ${S.mice}`,
+    `friend ${S.friend}   friendship ${S.friendship}`,
+    `walk speed ${speed().toFixed(2)}   sleeping ${!!S.sleeping}   rain ${Math.round(S.rain)}`,
+    `next popup in ~${Math.max(0,Math.round((S.nextPop||0)-(S.popT||0)))}s`
+  ].join('\n');
+}
+dbgInit();
+</script>
+</body>
+</html>
